@@ -1,5 +1,5 @@
 import pathlib
-from subprocess import Popen,PIPE,STDOUT
+from subprocess import Popen,PIPE,STDOUT,DEVNULL
 from multiprocessing import Pool, cpu_count
 import argparse
 import re
@@ -36,10 +36,10 @@ class VidSegment:
         self.ffmpeg_t = t
         VidSegment.fileID += 1
         self.outpath=pathlib.PurePath.joinpath(outputDir, f"{VidSegment.fileID:05d}" + '.mkv')
-        self.ffmpegSplitCmd = ['ffmpeg', '-nostdin', '-c:v', 'h264_cuvid', '-i', str(inputFile), '-ss', self.ffmpeg_ss, '-t', self.ffmpeg_t, '-v', 'warning', '-c:a', 'copy', '-c:v', 'libx264', '-preset', 'ultrafast', str(self.outpath)]
+        self.ffmpegSplitCmd = ['ffmpeg', '-nostdin', '-ss', self.ffmpeg_ss, '-i', str(inputFile), '-t', self.ffmpeg_t, '-v', 'warning', '-c:a', 'aac', '-c:v', 'libx264', '-preset', 'ultrafast', str(self.outpath)]
 
     def start(self):
-        with Popen(self.ffmpegSplitCmd, stdout=PIPE, stderr=STDOUT) as process:
+        with Popen(self.ffmpegSplitCmd, stdout=DEVNULL, stderr=DEVNULL) as process:
             process.communicate()
             return(" ".join(self.ffmpegSplitCmd))
 
@@ -74,7 +74,7 @@ def callFFmpeg(seg):
 def getListEntry(path):
     filename = str(path.resolve())
     #Verify file integrity
-    with Popen(['ffprobe', filename], stdout=PIPE, stderr=STDOUT) as process:
+    with Popen(['ffprobe', filename], stdout=DEVNULL, stderr=DEVNULL) as process:
         process.communicate()
         if(process.returncode != 0):
             return ""
