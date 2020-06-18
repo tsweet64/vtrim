@@ -10,6 +10,7 @@ parser.add_argument('outName', help='The output filename')
 parser.add_argument('--threshold', '-t', type=float, default=0.02, help='Threshold to detect as silence (between 0 and 1) (default 0.02)')
 parser.add_argument('--gap', '-g', type=float, default=0.1, help='Number of seconds to wait before cutting silence (default 0.1)')
 parser.add_argument('--ignore-temp', action='store_true', help='ignore temp dir')
+parser.add_argument('--preset', '-p', type=str, default='ultrafast', help='ffmpeg encoding preset for libx264', choices=['ultrafast', 'superfast', 'veryfast', 'faster', 'fast', 'medium', 'slow', 'slower', 'veryslow', 'placebo'])
 args = parser.parse_args()
 
 inputFile = pathlib.Path(args.inputName)
@@ -36,7 +37,7 @@ class VidSegment:
         self.ffmpeg_t = t
         VidSegment.fileID += 1
         self.outpath=pathlib.PurePath.joinpath(outputDir, f"{VidSegment.fileID:05d}" + '.mkv')
-        self.ffmpegSplitCmd = ['ffmpeg', '-nostdin', '-ss', self.ffmpeg_ss, '-i', str(inputFile), '-t', self.ffmpeg_t, '-v', 'warning', '-c:a', 'aac', '-c:v', 'libx264', '-preset', 'ultrafast', str(self.outpath)]
+        self.ffmpegSplitCmd = ['ffmpeg', '-nostdin', '-ss', self.ffmpeg_ss, '-i', str(inputFile), '-t', self.ffmpeg_t, '-v', 'warning', '-c:a', 'aac', '-c:v', 'libx264', '-preset', args.preset, str(self.outpath)]
 
     def start(self):
         with Popen(self.ffmpegSplitCmd, stdout=DEVNULL, stderr=DEVNULL) as process:
@@ -47,7 +48,7 @@ class VidSegment:
 def measureSilence():
     ffmpegDetectCmd = ['ffmpeg', '-i', str(inputFile), '-filter_complex', '[0:a]silencedetect=n=' + str(args.threshold) + ':d=' + str(args.gap) + '[outa]', '-map', '[outa]', '-y', '-f', 'null', '-']
     with Popen(ffmpegDetectCmd, stdout=PIPE, stderr=STDOUT) as process:
-            return process.communicate()[0].decode('ascii')
+            return process.communicate()[0].decode('utf-8')
 
 
 def getVideoSegment():
@@ -88,7 +89,7 @@ def writeSegmentList():
 def mergeSegments():
     ffmpegMergeCmd = ['ffmpeg', '-f', 'concat', '-safe', '0', '-i', str(tempListFile), '-c', 'copy', str(outputFile)]
     with Popen(ffmpegMergeCmd, stdout=PIPE, stderr=STDOUT) as process:
-            return process.communicate()[0].decode('ascii')
+            return process.communicate()[0].decode('utf-8')
 
 #Generate segments
 with Pool(cpu_count()) as pool:
