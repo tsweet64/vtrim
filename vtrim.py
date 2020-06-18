@@ -1,6 +1,7 @@
 import pathlib
 from subprocess import Popen,PIPE,STDOUT,DEVNULL
 from multiprocessing import Pool, cpu_count
+from shutil import rmtree
 import argparse
 import re
 
@@ -11,6 +12,8 @@ parser.add_argument('--threshold', '-t', type=float, default=0.02, help='Thresho
 parser.add_argument('--gap', '-g', type=float, default=0.1, help='Number of seconds to wait before cutting silence (default 0.1)')
 parser.add_argument('--ignore-temp', action='store_true', help='ignore temp dir')
 parser.add_argument('--preset', '-p', type=str, default='ultrafast', help='ffmpeg encoding preset for libx264', choices=['ultrafast', 'superfast', 'veryfast', 'faster', 'fast', 'medium', 'slow', 'slower', 'veryslow', 'placebo'])
+parser.add_argument('--quiet', '-q', action='store_true', help='don\'t print ffmpeg output')
+parser.add_argument('--remove', '-r', action='store_true', help='Remove the temporary files after running')
 args = parser.parse_args()
 
 inputFile = pathlib.Path(args.inputName)
@@ -46,9 +49,12 @@ class VidSegment:
 
 #Construct ffmpeg command. Note: ffmpeg outputs everything as stderr
 def measureSilence():
+    print('Analyzing audio...')
     ffmpegDetectCmd = ['ffmpeg', '-i', str(inputFile), '-filter_complex', '[0:a]silencedetect=n=' + str(args.threshold) + ':d=' + str(args.gap) + '[outa]', '-map', '[outa]', '-y', '-f', 'null', '-']
     with Popen(ffmpegDetectCmd, stdout=PIPE, stderr=STDOUT) as process:
-            return process.communicate()[0].decode('utf-8')
+            output = process.communicate()[0].decode('utf-8')
+            print('Splitting video...')
+            return output
 
 
 def getVideoSegment():
@@ -70,7 +76,10 @@ def getVideoSegment():
                 silence_start = None
 
 def callFFmpeg(seg):
-    print(seg.start())
+    if not args.quiet:
+        print(seg.start())
+    else:
+        seg.start()
 
 def getListEntry(path):
     filename = str(path.resolve())
@@ -87,12 +96,24 @@ def writeSegmentList():
     tempListFile.write_text(segList)
 
 def mergeSegments():
+    print('Merging video')
     ffmpegMergeCmd = ['ffmpeg', '-f', 'concat', '-safe', '0', '-i', str(tempListFile), '-c', 'copy', str(outputFile)]
     with Popen(ffmpegMergeCmd, stdout=PIPE, stderr=STDOUT) as process:
             return process.communicate()[0].decode('utf-8')
+
+def removeTemp():
+    print('Cleaning up')
+    tempListFile.unlink()
+    rmtree(outputDir)
 
 #Generate segments
 with Pool(cpu_count()) as pool:
     pool.map_async(callFFmpeg, getVideoSegment()).get()
 writeSegmentList()
-print(mergeSegments())
+if not args.quiet:
+    print(mergeSegments())
+else:
+    mergeSegments()
+    print('Merging complete')
+if args.remove:
+    removeTemp()
