@@ -1,5 +1,5 @@
 # vtrim
-This is a python script that uses `[ffmpeg](https://github.com/FFmpeg/FFmpeg)` to automatically trim silent parts from videos. This can be used to watch lectures faster, for example
+This is a python script that uses [`ffmpeg`](https://github.com/FFmpeg/FFmpeg) to automatically trim silent parts from videos. This can be used to watch lectures faster, for example
 
 ## Dependencies
 * A recent `python3`
