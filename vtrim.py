@@ -8,12 +8,13 @@ import re
 parser = argparse.ArgumentParser()
 parser.add_argument('inputName', help='The input video to process')
 parser.add_argument('outName', help='The output filename')
-parser.add_argument('--threshold', '-t', type=float, default=0.02, help='Threshold to detect as silence (between 0 and 1) (default 0.02)')
+parser.add_argument('--threshold', '-t', type=float, default=0.02, help='Volume threshold to detect as silence (between 0 and 1) (default 0.02)')
 parser.add_argument('--gap', '-g', type=float, default=0.1, help='Number of seconds to wait before cutting silence (default 0.1)')
-parser.add_argument('--ignore-temp', action='store_true', help='ignore temp dir')
-parser.add_argument('--preset', '-p', type=str, default='ultrafast', help='ffmpeg encoding preset for libx264', choices=['ultrafast', 'superfast', 'veryfast', 'faster', 'fast', 'medium', 'slow', 'slower', 'veryslow', 'placebo'])
+parser.add_argument('--ignore-temp', action='store_true', help='ignore temp dir (use this to restart an interrupted conversion')
+parser.add_argument('--preset', '-p', type=str, default='ultrafast', help='ffmpeg encoding preset for libx264. Faster presets create larger output and temporary files.', choices=['ultrafast', 'superfast', 'veryfast', 'faster', 'fast', 'medium', 'slow', 'slower', 'veryslow', 'placebo'])
 parser.add_argument('--quiet', '-q', action='store_true', help='don\'t print ffmpeg output')
 parser.add_argument('--remove', '-r', action='store_true', help='Remove the temporary files after running')
+parser.add_argument('--reencode', action='store_true', help='Re-encode the final output. Saves space but may reduce quality')
 args = parser.parse_args()
 
 inputFile = pathlib.Path(args.inputName)
@@ -92,12 +93,16 @@ def getListEntry(path):
 
 #Get list of output files:
 def writeSegmentList():
+    print("Verifying segment integrity")
     segList = '\n'.join(map(getListEntry, sorted(outputDir.glob('*'))))
     tempListFile.write_text(segList)
 
 def mergeSegments():
     print('Merging video')
-    ffmpegMergeCmd = ['ffmpeg', '-f', 'concat', '-safe', '0', '-i', str(tempListFile), '-c', 'copy', str(outputFile)]
+    codec = 'copy'
+    if args.reencode:
+        codec='libx264'
+    ffmpegMergeCmd = ['ffmpeg', '-f', 'concat', '-safe', '0', '-i', str(tempListFile), '-c:v', codec, str(outputFile)]
     with Popen(ffmpegMergeCmd, stdout=PIPE, stderr=STDOUT) as process:
             return process.communicate()[0].decode('utf-8')
 
