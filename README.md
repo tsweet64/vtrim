@@ -1,5 +1,5 @@
 # vtrim
-This is a python script that uses `[ffmpeg](https://github.com/FFmpeg/FFmpeg)` to automatically trim silent parts from videos. This can be used to watch lectures faster, for example
+This is a python script that uses [`ffmpeg`](https://github.com/FFmpeg/FFmpeg) to automatically trim silent parts from videos. This can be used to watch lectures faster, for example
 
 ## Dependencies
 * A recent `python3`
@@ -23,7 +23,7 @@ This is a python script that uses `[ffmpeg](https://github.com/FFmpeg/FFmpeg)` t
 ```
 
 ## Obtaining input files
-If you want to run this script on a video found online, such as on youtube, you will need to download it. I recommend ~~[youtube-dl](https://github.com/ytdl-org/youtube-dl)~~ [youtube-dlc](https://github.com/blackjack4494/yt-dlc), a FOSS command-line tool that can download videos and audio from hundreds of sites.
+If you want to run this script on a video found online, such as on youtube, you will need to download it. I recommend [youtube-dl](https://github.com/ytdl-org/youtube-dl), a FOSS command-line tool that can download videos and audio from hundreds of sites.
 
 ## Planned
 * Add support for audio-only files
