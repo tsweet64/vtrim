@@ -115,9 +115,9 @@ def removeTemp():
 
 def processAudioOnly():
     print('Processing audio only with ffmpeg silenceremove...')
-    ffmpegAudioCommand = ['ffmpeg', '-nostdin', '-i', str(inputFile), '-vn', '-af', 'silenceremove=stop_threshold=' + str(args.threshold) + ':stop_duration=' + str(args.gap) + 'stop_periods=-1', str(outputFile)]
+    ffmpegAudioCommand = ['ffmpeg', '-nostdin', '-i', str(inputFile), '-vn', '-af', 'silenceremove=stop_threshold=' + str(args.threshold) + ':stop_duration=' + str(args.gap) + ':stop_periods=-1', str(outputFile)]
     with Popen(ffmpegAudioCommand, stdout=PIPE, stderr=STDOUT) as process:
-        return process.communicate()[0].decode(utf-8)
+        return process.communicate()[0].decode('utf-8')
 
 #Handle video files
 if args.audio:
