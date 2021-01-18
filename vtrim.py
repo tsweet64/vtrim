@@ -8,12 +8,13 @@ import re
 parser = argparse.ArgumentParser()
 parser.add_argument('inputName', help='The input video to process')
 parser.add_argument('outName', help='The output filename')
+parser.add_argument('--audio', '-a', action='store_true', help='Produce an audio-only output.')
 parser.add_argument('--threshold', '-t', type=float, default=0.02, help='Volume threshold to detect as silence (between 0 and 1) (default 0.02)')
 parser.add_argument('--gap', '-g', type=float, default=0.1, help='Number of seconds to wait before cutting silence (default 0.1)')
 parser.add_argument('--ignore-temp', action='store_true', help='ignore temp dir (use this to restart an interrupted conversion')
 parser.add_argument('--preset', '-p', type=str, default='ultrafast', help='ffmpeg encoding preset for libx264. Faster presets create larger output and temporary files.', choices=['ultrafast', 'superfast', 'veryfast', 'faster', 'fast', 'medium', 'slow', 'slower', 'veryslow', 'placebo'])
 parser.add_argument('--quiet', '-q', action='store_true', help='don\'t print ffmpeg output')
-parser.add_argument('--remove', '-r', action='store_true', help='Remove the temporary files after running')
+parser.add_argument('--keep', '-k', action='store_true', help='Keep the temporary files after running')
 parser.add_argument('--reencode', action='store_true', help='Re-encode the final output. Saves space but may reduce quality')
 args = parser.parse_args()
 
@@ -21,16 +22,17 @@ inputFile = pathlib.Path(args.inputName)
 assert inputFile.is_file()
 outputFile = pathlib.Path(args.outName)
 assert not outputFile.is_file()
-tempListFile = pathlib.Path('segmentlist.txt')
-assert not tempListFile.is_file()
+if not args.audio:
+    tempListFile = pathlib.Path('segmentlist.txt')
+    assert not tempListFile.is_file()
 
-#print(args.inputName + '\n' + str(args.threshold) + '\n' + str(args.gap))
-#Prepares the output path.
-outputDir = pathlib.Path("vtemp")
-if outputDir.is_dir():
-    assert not any(outputDir.iterdir()) or args.ignore_temp, "The temporary directory already exists and is non-empty. Please clear it."
-else:
-    outputDir.mkdir()
+    #print(args.inputName + '\n' + str(args.threshold) + '\n' + str(args.gap))
+    #Prepares the output path for the temporary directory.
+    outputDir = pathlib.Path("vtemp")
+    if outputDir.is_dir():
+        assert not any(outputDir.iterdir()) or args.ignore_temp, "The temporary directory already exists and is non-empty. Please clear it."
+    else:
+        outputDir.mkdir()
 
 #Object for each segment of video
 
@@ -51,7 +53,7 @@ class VidSegment:
 #Construct ffmpeg command. Note: ffmpeg outputs everything as stderr
 def measureSilence():
     print('Analyzing audio...')
-    ffmpegDetectCmd = ['ffmpeg', '-i', str(inputFile), '-filter_complex', '[0:a]silencedetect=n=' + str(args.threshold) + ':d=' + str(args.gap) + '[outa]', '-map', '[outa]', '-y', '-f', 'null', '-']
+    ffmpegDetectCmd = ['ffmpeg', '-nostdin', '-i', str(inputFile), '-filter_complex', '[0:a]silencedetect=n=' + str(args.threshold) + ':d=' + str(args.gap) + '[outa]', '-map', '[outa]', '-y', '-f', 'null', '-']
     with Popen(ffmpegDetectCmd, stdout=PIPE, stderr=STDOUT) as process:
             output = process.communicate()[0].decode('utf-8')
             print('Splitting video...')
@@ -102,7 +104,7 @@ def mergeSegments():
     codec = 'copy'
     if args.reencode:
         codec='libx264'
-    ffmpegMergeCmd = ['ffmpeg', '-f', 'concat', '-safe', '0', '-i', str(tempListFile), '-c:v', codec, str(outputFile)]
+    ffmpegMergeCmd = ['ffmpeg', '-nostdin', '-f', 'concat', '-safe', '0', '-i', str(tempListFile), '-c:v', codec, str(outputFile)]
     with Popen(ffmpegMergeCmd, stdout=PIPE, stderr=STDOUT) as process:
             return process.communicate()[0].decode('utf-8')
 
@@ -111,14 +113,27 @@ def removeTemp():
     tempListFile.unlink()
     rmtree(outputDir)
 
-#Generate segments
-with Pool(cpu_count()) as pool:
-    pool.map_async(callFFmpeg, getVideoSegment()).get()
-writeSegmentList()
-if not args.quiet:
-    print(mergeSegments())
+def processAudioOnly():
+    print('Processing audio only with ffmpeg silenceremove...')
+    ffmpegAudioCommand = ['ffmpeg', '-nostdin', '-i', str(inputFile), '-vn', '-af', 'silenceremove=stop_threshold=' + str(args.threshold) + ':stop_duration=' + str(args.gap) + 'stop_periods=-1', str(outputFile)]
+    with Popen(ffmpegAudioCommand, stdout=PIPE, stderr=STDOUT) as process:
+        return process.communicate()[0].decode(utf-8)
+
+#Handle video files
+if args.audio:
+    if not args.quiet:
+        print(processAudioOnly())
+    else:
+        processAudioOnly()
 else:
-    mergeSegments()
-    print('Merging complete')
-if args.remove:
-    removeTemp()
+    #Generate segments
+    with Pool(cpu_count()) as pool:
+        pool.map_async(callFFmpeg, getVideoSegment()).get()
+    writeSegmentList()
+    if not args.quiet:
+        print(mergeSegments())
+    else:
+        mergeSegments()
+        print('Merging complete')
+    if not args.keep:
+        removeTemp()
