@@ -26,5 +26,5 @@ This is a python script that uses [`ffmpeg`](https://github.com/FFmpeg/FFmpeg) t
 If you want to run this script on a video found online, such as on youtube, you will need to download it. I recommend [youtube-dl](https://github.com/ytdl-org/youtube-dl), a FOSS command-line tool that can download videos and audio from hundreds of sites.
 
 ## Planned
-* Add support for audio-only files
+* ~~Add support for audio-only files~~ v. 1.1
 * Build url handling directly into the script via youtube-dl
