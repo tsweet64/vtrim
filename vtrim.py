@@ -43,7 +43,7 @@ class VidSegment:
         self.ffmpeg_t = t
         VidSegment.fileID += 1
         self.outpath=pathlib.PurePath.joinpath(outputDir, f"{VidSegment.fileID:05d}" + '.mkv')
-        self.ffmpegSplitCmd = ['ffmpeg', '-nostdin', '-ss', self.ffmpeg_ss, '-i', str(inputFile), '-t', self.ffmpeg_t, '-v', 'warning', '-c:a', 'aac', '-c:v', 'libx264', '-preset', args.preset, str(self.outpath)]
+        self.ffmpegSplitCmd = ['ffmpeg', '-nostdin', '-ss', self.ffmpeg_ss, '-i', str(inputFile), '-t', self.ffmpeg_t, '-v', 'warning', '-c:a', 'libopus', '-c:v', 'libx264', '-preset', args.preset, str(self.outpath)]
 
     def start(self):
         with Popen(self.ffmpegSplitCmd, stdout=DEVNULL, stderr=DEVNULL) as process:
@@ -101,10 +101,12 @@ def writeSegmentList():
 
 def mergeSegments():
     print('Merging video')
-    codec = 'copy'
+    vcodec = 'copy'
+    acodec = 'copy'
     if args.reencode:
-        codec='libx264'
-    ffmpegMergeCmd = ['ffmpeg', '-nostdin', '-f', 'concat', '-safe', '0', '-i', str(tempListFile), '-c:v', codec, str(outputFile)]
+        vcodec='libx264'
+        acodec='libopus'
+    ffmpegMergeCmd = ['ffmpeg', '-nostdin', '-f', 'concat', '-safe', '0', '-i', str(tempListFile), '-c:v', vcodec, '-c:a', acodec, str(outputFile)]
     with Popen(ffmpegMergeCmd, stdout=PIPE, stderr=STDOUT) as process:
             return process.communicate()[0].decode('utf-8')
 

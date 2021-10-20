@@ -4,7 +4,7 @@ This is a python script that uses [`ffmpeg`](https://github.com/FFmpeg/FFmpeg) t
 ## Dependencies
 * A recent `python3`
 * [`ffmpeg`](https://github.com/FFmpeg/FFmpeg)
-* This script has only been tested on Manjaro Linux, however I expect it to work on any operating system that supports a recent `python3` and `ffmpepg`. Please report any errors with other operating systems.
+* This script has only been tested on Arch and Manjaro Linux, however I expect it to work on any operating system that supports a recent `python3` and `ffmpeg`. Please report any errors with other operating systems.
 
 ## Usage
 * `python vtrim.py inputvideo.mp4 outputvideo.mp4 [options]`
@@ -23,8 +23,8 @@ This is a python script that uses [`ffmpeg`](https://github.com/FFmpeg/FFmpeg) t
 ```
 
 ## Obtaining input files
-If you want to run this script on a video found online, such as on youtube, you will need to download it. I recommend [youtube-dl](https://github.com/ytdl-org/youtube-dl), a FOSS command-line tool that can download videos and audio from hundreds of sites.
+If you want to run this script on a video found online, such as on youtube, you will need to download it. I recommend [yt-dlp](https://github.com/yt-dlp/yt-dlp), a FOSS command-line tool that can download videos and audio from hundreds of sites.
 
 ## Planned
 * ~~Add support for audio-only files~~ v. 1.1
-* Build url handling directly into the script via youtube-dl
+* Build url handling directly into the script via yt-dlp
