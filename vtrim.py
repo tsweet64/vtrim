@@ -13,6 +13,7 @@ parser.add_argument('--threshold', '-t', type=float, default=0.02, help='Volume 
 parser.add_argument('--gap', '-g', type=float, default=0.1, help='Number of seconds to wait before cutting silence (default 0.1)')
 parser.add_argument('--ignore-temp', action='store_true', help='ignore temp dir (use this to restart an interrupted conversion')
 parser.add_argument('--preset', '-p', type=str, default='ultrafast', help='ffmpeg encoding preset for libx264. Faster presets create larger output and temporary files.', choices=['ultrafast', 'superfast', 'veryfast', 'faster', 'fast', 'medium', 'slow', 'slower', 'veryslow', 'placebo'])
+parser.add_argument('--bitrate', '-b', type=str, default='96k', help='opus bitrate to pass to ffmpeg (currently only applies without --reencode')
 parser.add_argument('--quiet', '-q', action='store_true', help='don\'t print ffmpeg output')
 parser.add_argument('--keep', '-k', action='store_true', help='Keep the temporary files after running')
 parser.add_argument('--reencode', action='store_true', help='Re-encode the final output. Saves space but may reduce quality')
@@ -43,7 +44,7 @@ class VidSegment:
         self.ffmpeg_t = t
         VidSegment.fileID += 1
         self.outpath=pathlib.PurePath.joinpath(outputDir, f"{VidSegment.fileID:05d}" + '.mkv')
-        self.ffmpegSplitCmd = ['ffmpeg', '-nostdin', '-ss', self.ffmpeg_ss, '-i', str(inputFile), '-t', self.ffmpeg_t, '-v', 'warning', '-c:a', 'libopus', '-c:v', 'libx264', '-preset', args.preset, str(self.outpath)]
+        self.ffmpegSplitCmd = ['ffmpeg', '-nostdin', '-ss', self.ffmpeg_ss, '-i', str(inputFile), '-t', self.ffmpeg_t, '-v', 'warning', '-c:a', 'libopus', '-b:a', args.bitrate, '-c:v', 'libx264', '-preset', args.preset, str(self.outpath)]
 
     def start(self):
         with Popen(self.ffmpegSplitCmd, stdout=DEVNULL, stderr=DEVNULL) as process:
@@ -117,7 +118,7 @@ def removeTemp():
 
 def processAudioOnly():
     print('Processing audio only with ffmpeg silenceremove...')
-    ffmpegAudioCommand = ['ffmpeg', '-nostdin', '-i', str(inputFile), '-vn', '-af', 'silenceremove=stop_threshold=' + str(args.threshold) + ':stop_duration=' + str(args.gap) + ':stop_periods=-1', str(outputFile)]
+    ffmpegAudioCommand = ['ffmpeg', '-nostdin', '-i', str(inputFile), '-vn', '-af', 'silenceremove=stop_threshold=' + str(args.threshold) + ':stop_duration=' + str(args.gap) + ':stop_periods=-1', '-b:a', args.bitrate, str(outputFile)]
     with Popen(ffmpegAudioCommand, stdout=PIPE, stderr=STDOUT) as process:
         return process.communicate()[0].decode('utf-8')
 
